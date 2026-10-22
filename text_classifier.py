@@ -1,37 +1,79 @@
 # Python Text Classifier
 # A beginner project that classifies text sentiment
-# using simple keyword-based rules.
+# using keyword-based rules.
 
-def classify_sentiment(text):
-"""Classify a sentence as positive, negative, or neutral."""
+import re
 
-positive_words = [
+
+POSITIVE_WORDS = {
 "good", "great", "happy", "excellent",
 "love", "wonderful", "amazing", "helpful",
-"success", "best"
-]
+"success", "best", "fantastic", "enjoy",
+"beautiful", "kind", "excited", "perfect"
+}
 
-negative_words = [
+NEGATIVE_WORDS = {
 "bad", "sad", "angry", "terrible",
 "hate", "awful", "poor", "worst",
-"disappointed", "failure"
-]
+"disappointed", "failure", "horrible",
+"annoyed", "unhappy", "ugly", "boring"
+}
 
-# Convert text to lowercase so matching is case-insensitive.
-words = text.lower().split()
+NEGATION_WORDS = {
+"not", "never", "no", "neither", "nor",
+"hardly", "isn't", "wasn't", "weren't",
+"don't", "doesn't", "didn't", "can't",
+"couldn't", "won't", "wouldn't", "shouldn't"
+}
 
-# Count positive and negative keyword matches.
-positive_score = sum(
-1 for word in words
-if word.strip(".,!?;:") in positive_words
+
+def classify_sentiment(text):
+"""Classify text as positive, negative, or neutral."""
+
+if not isinstance(text, str):
+raise TypeError("Input must be a string.")
+
+if not text.strip():
+raise ValueError("Input cannot be empty.")
+
+# Extract words and punctuation marks.
+tokens = re.findall(
+r"[a-z]+(?:'[a-z]+)?|[.!?,;:]",
+text.lower()
 )
 
-negative_score = sum(
-1 for word in words
-if word.strip(".,!?;:") in negative_words
-)
+positive_score = 0
+negative_score = 0
+negation_window = 0
 
-# Decide the sentiment based on the scores.
+for token in tokens:
+
+# Punctuation ends the current negation scope.
+if token in {".", "!", "?", ",", ";", ":"}:
+negation_window = 0
+continue
+
+if token in NEGATION_WORDS:
+negation_window = 3
+continue
+
+is_negated = negation_window > 0
+
+if token in POSITIVE_WORDS:
+if is_negated:
+negative_score += 1
+else:
+positive_score += 1
+
+elif token in NEGATIVE_WORDS:
+if is_negated:
+positive_score += 1
+else:
+negative_score += 1
+
+if negation_window > 0:
+negation_window -= 1
+
 if positive_score > negative_score:
 sentiment = "Positive"
 elif negative_score > positive_score:
@@ -44,7 +86,7 @@ return sentiment, positive_score, negative_score
 
 def main():
 print("=== Python Text Classifier ===")
-print("Enter a sentence to analyse its sentiment.")
+print("Analyse the sentiment of a sentence.")
 print("Type 'quit' to exit.\n")
 
 while True:
@@ -58,6 +100,7 @@ if not user_text:
 print("Please enter a sentence.\n")
 continue
 
+try:
 sentiment, positive_score, negative_score = (
 classify_sentiment(user_text)
 )
@@ -65,9 +108,12 @@ classify_sentiment(user_text)
 print("\n--- Classification Result ---")
 print("Text:", user_text)
 print("Sentiment:", sentiment)
-print("Positive keyword matches:", positive_score)
-print("Negative keyword matches:", negative_score)
+print("Positive score:", positive_score)
+print("Negative score:", negative_score)
 print("-----------------------------\n")
+
+except (TypeError, ValueError) as error:
+print("Error:", error, "\n")
 
 
 if __name__ == "__main__":
